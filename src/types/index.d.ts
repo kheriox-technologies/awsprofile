@@ -7,7 +7,6 @@ export interface IDefaultConfig {
   region: string;
   output: string;
   mfaSerial: string;
-  sessionDuration: number;
   mfaBaseKeys?: IMFABaseKeys[];
 }
 export interface IProfileData {
@@ -18,16 +17,15 @@ export interface IProfileData {
   secretAccessKey?: string;
   mfa?: string;
   mfaSerial?: string;
-  sessionDuration?: string;
   mfaCode?: string;
   sourceProfile?: string;
   roleArn?: string;
   output?: string;
 }
 export interface IAWSProfile {
-  name: string;
-  aws_access_key_id: string;
-  aws_secret_access_key: string;
+  name?: string;
+  aws_access_key_id?: string;
+  aws_secret_access_key?: string;
   aws_session_token?: string;
   mfa_serial?: string;
   output?: string;

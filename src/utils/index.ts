@@ -59,34 +59,29 @@ export const displayBox = (message: string, level: string = "success") => {
 
 // Get AWS Version
 export const getAWSVersion = async () => {
-  return new Promise<string | null>(async (resolve, reject) => {
-    try {
-      exec("aws --version", (err, stdout, stderr) => {
-        if (err) return resolve(null);
-        if (stderr) return resolve(null);
-        resolve(stdout.split(" ")[0].split("/")[1]);
-      });
-    } catch (error) {
-      reject(error);
-    }
+  return new Promise<string>(async (resolve, reject) => {
+    exec("aws --version", (err, stdout, stderr) => {
+      if (err) reject("AWS CLI not found");
+      if (stderr) reject("AWS CLI not found");
+      resolve(stdout.split(" ")[0].split("/")[1]);
+    });
   });
 };
 
 // Get AWS Version
 export const getAWSRegions = async () => {
   return new Promise<IAWSRegion[]>(async (resolve, reject) => {
+    // Get AWS Regions from Data
     try {
-      // Get AWS Regions from Data
-      const awsRegions: IAWSRegion[] = _.orderBy(
-        await fs.readJSONSync(
-          path.resolve(__dirname, "../data/awsRegions.json")
-        ),
-        ["code"],
-        ["asc"]
+      const awsRegions: IAWSRegion[] = await fs.readJSONSync(
+        path.resolve(__dirname, "../data/awsRegions.json")
       );
-      resolve(awsRegions);
+      resolve(_.orderBy(awsRegions, ["code"], ["asc"]));
     } catch (error) {
-      reject(error);
+      displayBox(
+        error.message ? error.message : "Unable to fetch AWS regions",
+        "danger"
+      );
     }
   });
 };
@@ -121,37 +116,12 @@ export const askForDefaults = () => {
             message: "Please enter your default MFA serial ARN",
             default: "arn:aws:iam::123456789012:mfa/username",
           },
-          {
-            name: "sessionDuration",
-            type: "number",
-            message:
-              "Please enter your default STS session duration in seconds",
-            default: 3600,
-            filter: (stsSessionDuration) => {
-              return isNaN(stsSessionDuration) ||
-                stsSessionDuration < 900 ||
-                stsSessionDuration > 129600
-                ? ""
-                : stsSessionDuration;
-            },
-            validate: (stsSessionDuration) => {
-              if (isNaN(stsSessionDuration)) {
-                return "STS session duration must be a number between 900 (15 Min) and 129600 (36 Hours)";
-              } else if (
-                stsSessionDuration < 900 ||
-                stsSessionDuration > 129600
-              ) {
-                return "STS session duration must be between 900 (15 Min) and 129600 (36 Hours)";
-              } else return true;
-            },
-          },
         ])
         .then((answers) => {
           resolve(answers);
         });
     } catch (error) {
-      console.log(error);
-      reject(error);
+      displayBox(error.message ? error.message : error, "danger");
     }
   });
 };
@@ -164,53 +134,7 @@ export const getDefaultConfig = async (configPath: string) => {
       const config = fs.readJSONSync(configFile);
       resolve(config);
     } catch (error) {
-      reject(error);
-    }
-  });
-};
-
-// Set MFA base keys
-export const setMFABaseKeys = async (
-  configPath: string,
-  baseKeys: IMFABaseKeys
-) => {
-  return new Promise<void>(async (resolve, reject) => {
-    try {
-      const configFile = path.join(configPath, "config.json");
-      const config: IDefaultConfig = fs.readJSONSync(configFile);
-
-      if (config.mfaBaseKeys) {
-        config.mfaBaseKeys = _.filter(
-          config.mfaBaseKeys,
-          (k) => k.name !== baseKeys.name
-        );
-      } else {
-        config.mfaBaseKeys = [];
-      }
-
-      config.mfaBaseKeys.push(baseKeys);
-      fs.outputJSONSync(configFile, config);
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
-};
-
-// Set MFA base keys
-export const getMFABaseKeys = async (configPath: string, name: string) => {
-  return new Promise<IMFABaseKeys>(async (resolve, reject) => {
-    try {
-      const configFile = path.join(configPath, "config.json");
-      const config: IDefaultConfig = fs.readJSONSync(configFile);
-
-      const baseKeys = config.mfaBaseKeys
-        ? _.find(config.mfaBaseKeys, (k) => k.name === name)
-        : null;
-      if (baseKeys) return resolve(baseKeys);
-      return reject();
-    } catch (error) {
-      reject(error);
+      displayBox(error.message ? error.message : error, "danger");
     }
   });
 };
@@ -237,7 +161,7 @@ export const getProfiles = async (homePath: string) => {
       const profiles: IAWSProfile[] = [];
       for (let key of Object.keys(credsObject)) {
         let profile = {
-          ...{ name: key.replace("profile ", "") },
+          ...{ name: key },
           ...credsObject[key],
         };
         if (key === "default") {
@@ -253,7 +177,7 @@ export const getProfiles = async (homePath: string) => {
       }
       resolve(_.orderBy(profiles, ["name"], ["asc"]));
     } catch (error) {
-      reject(error);
+      displayBox(error.message ? error.message : error, "danger");
     }
   });
 };
@@ -305,7 +229,7 @@ export const checkExistingProfile = async (
         );
       }
     } catch (error) {
-      throw new Error(error.message ? error.message : error);
+      displayBox(error.message ? error.message : error, "danger");
     }
   });
 };
@@ -338,19 +262,29 @@ export const createProfile = async (
           output: profileData.output,
         };
         profiles.push(newProfile);
+        // Write Profiles
+        await writeProfiles(homePath, profiles);
+        // Display Message
+        await displayMessage(profileData, platform);
+        resolve();
       }
 
-      // Normal profile With MFA
+      // Normal profile with MFA
       if (profileData.type === "normal" && profileData.mfa) {
-        await setMFABaseKeys(configPath, {
-          name: profileData.name,
-          aws_access_key_id: profileData.accessKey,
-          aws_secret_access_key: profileData.secretAccessKey,
-        });
-        const stsCredentials = await getSTSCredentials(profileData);
         const newProfile: IAWSProfile = {
           name: profileData.name,
+          aws_access_key_id: profileData.accessKey ? profileData.accessKey : "",
+          aws_secret_access_key: profileData.secretAccessKey
+            ? profileData.secretAccessKey
+            : "",
+          region: profileData.region,
+          output: profileData.output,
           mfa_serial: profileData.mfaSerial,
+        };
+        profiles.push(newProfile);
+        const stsCredentials = await getSTSCredentials(profileData);
+        const newMFAProfile: IAWSProfile = {
+          name: `${profileData.name}-mfa`,
           aws_access_key_id: stsCredentials.aws_access_key_id,
           aws_secret_access_key: stsCredentials.aws_secret_access_key,
           aws_session_token: stsCredentials.aws_session_token,
@@ -358,7 +292,12 @@ export const createProfile = async (
           region: profileData.region,
           output: profileData.output,
         };
-        profiles.push(newProfile);
+        profiles.push(newMFAProfile);
+        // Write Profiles
+        await writeProfiles(homePath, profiles);
+        // Display Message
+        await displayMessage(profileData, platform);
+        resolve();
       }
 
       // Assumed profile
@@ -366,46 +305,92 @@ export const createProfile = async (
         // Get Source Profile from the list of profiles
         const sourceProfile: IAWSProfile | undefined = _.find(
           profiles,
-          (p) => p.name === profileData.name
+          (p) => p.name === profileData.sourceProfile
         );
 
         if (!sourceProfile)
           return reject(
-            `Source profile ${profileData.name} not found. Please try again`
+            `Source profile ${profileData.sourceProfile} not found. Please try again`
           );
-        console.log(profileData);
-        // const newProfile: IAWSProfile = {
-        //   name: profileData.name,
-        //   aws_access_key_id: profileData.accessKey ? profileData.accessKey : "",
-        //   aws_secret_access_key: profileData.secretAccessKey
-        //     ? profileData.secretAccessKey
-        //     : "",
-        //   region: profileData.region,
-        //   output: profileData.output,
-        // };
-        // profiles.push(newProfile);
+
+        if (sourceProfile.mfa_serial && sourceProfile.mfa_serial !== "") {
+          inquirer
+            .prompt([
+              {
+                name: "mfaCode",
+                message: `Please enter the MFA code for source profile '${
+                  sourceProfile.name
+                }' and user ${_.last(_.split(sourceProfile.mfa_serial, "/"))}`,
+                validate: (mfaCode) => {
+                  if (mfaCode === "") {
+                    return "Looks like you haven't provided your MFA code. Please try again";
+                  } else if (mfaCode.length < 6 || isNaN(mfaCode)) {
+                    return "Your MFA code doesn't seem to be right. It must be a number & minimum 6 digits long.";
+                  } else return true;
+                },
+              },
+            ])
+            .then(async (answers) => {
+              const stsCredentials = await getSTSCredentials({
+                ...profileData,
+                ...{
+                  type: "normal",
+                  accessKey: sourceProfile.aws_access_key_id,
+                  secretAccessKey: sourceProfile.aws_secret_access_key,
+                  mfaSerial: sourceProfile.mfa_serial,
+                  mfaCode: answers.mfaCode,
+                },
+              });
+              const newMFAProfile: IAWSProfile = {
+                name: `${sourceProfile.name}-mfa`,
+                aws_access_key_id: stsCredentials.aws_access_key_id,
+                aws_secret_access_key: stsCredentials.aws_secret_access_key,
+                aws_session_token: stsCredentials.aws_session_token,
+                expiration: stsCredentials.expiration,
+                region: profileData.region,
+                output: profileData.output,
+              };
+              profiles.push(newMFAProfile);
+              const newProfile: IAWSProfile = {
+                name: profileData.name,
+                source_profile: `${profileData.sourceProfile}-mfa`,
+                role_arn: profileData.roleArn,
+                role_session_name: `${_.kebabCase(profileData.roleArn).replace(
+                  "arn-aws-iam-",
+                  ""
+                )}-assumed-session`,
+                region: profileData.region,
+                output: profileData.output,
+              };
+              profiles.push(newProfile);
+              // Write Profiles
+              await writeProfiles(homePath, profiles);
+              // Display Message
+              await displayMessage(profileData, platform);
+              resolve();
+            });
+        } else {
+          const newProfile: IAWSProfile = {
+            name: profileData.name,
+            source_profile: profileData.sourceProfile,
+            role_arn: profileData.roleArn,
+            role_session_name: `${_.kebabCase(profileData.roleArn).replace(
+              "arn-aws-iam-",
+              ""
+            )}-assumed-session`,
+            region: profileData.region,
+            output: profileData.output,
+          };
+          profiles.push(newProfile);
+          // Write Profiles
+          await writeProfiles(homePath, profiles);
+          // Display Message
+          await displayMessage(profileData, platform);
+          resolve();
+        }
       }
-
-      // Write Profiles
-      await writeProfiles(homePath, profiles);
-
-      // Copy AWS Profile command
-      if (platform === "win32") {
-        clipboard.writeSync(`setx AWS_PROFILE ${profileData.name}`);
-      } else {
-        clipboard.writeSync(`export AWS_PROFILE=${profileData.name}`);
-      }
-
-      // Display Message
-      console.log(
-        boxen(
-          `Profile '${profileData.name}' created succesfully
-AWS export command is copied to your clipboard. Please paste (Cmd-V / Ctrl-V) the command to set your profile`,
-          successBox
-        )
-      );
     } catch (error) {
-      throw new Error(error.message ? error.message : error);
+      displayBox(error.message ? error.message : error, "danger");
     }
   });
 };
@@ -421,10 +406,7 @@ export const getSTSCredentials = async (profileData: IProfileData) => {
 
       spinner.start("Requesting temporary credentials from STS");
 
-      // Set Session duration
-      const stsParams: any = {
-        DurationSeconds: profileData.sessionDuration,
-      };
+      const stsParams: any = {};
 
       // Set MFA details for MFA profiles
       if (profileData.mfaSerial) {
@@ -432,7 +414,21 @@ export const getSTSCredentials = async (profileData: IProfileData) => {
         stsParams.TokenCode = profileData.mfaCode;
       }
 
-      const stsRes: any = await sts.getSessionToken(stsParams).promise();
+      // Set Role ARN details
+      // if (profileData.roleArn) {
+      //   stsParams.RoleArn = profileData.roleArn;
+      //   stsParams.RoleSessionName = `${_.last(
+      //     _.split(profileData.roleArn, "/")
+      //   )}-AssumedSession`;
+      // }
+      let stsRes: any;
+
+      // if (profileData.type === "assumed") {
+      //   stsRes = await sts.assumeRole(stsParams).promise();
+      // } else {
+      //   stsRes = await sts.getSessionToken(stsParams).promise();
+      // }
+      stsRes = await sts.getSessionToken(stsParams).promise();
       const stsCredentials: ISTSCredential = {
         aws_access_key_id: stsRes.Credentials.AccessKeyId,
         aws_secret_access_key: stsRes.Credentials.SecretAccessKey,
@@ -442,7 +438,8 @@ export const getSTSCredentials = async (profileData: IProfileData) => {
       spinner.succeed();
       return resolve(stsCredentials);
     } catch (error) {
-      throw new Error(error.message ? error.message : error);
+      spinner.fail();
+      displayBox(error.message ? error.message : error, "danger");
     }
   });
 };
@@ -460,7 +457,14 @@ export const writeProfiles = async (
         "aws_session_token",
         "expiration",
       ];
-      const configAttributes = ["region", "output", "mfa_serial"];
+      const configAttributes = [
+        "region",
+        "output",
+        "mfa_serial",
+        "source_profile",
+        "role_arn",
+        "role_session_name",
+      ];
 
       const credsObject: any = {};
       const configObject: any = {};
@@ -468,32 +472,60 @@ export const writeProfiles = async (
       for (const profile of profiles) {
         const iniSection =
           profile.name === "default" ? "default" : `profile ${profile.name}`;
-        credsObject[profile.name] = {};
+        if (profile.name) credsObject[profile.name] = {};
         configObject[iniSection] = {};
         for (const profileKey in profile) {
           if (_.findIndex(credsAttributes, (x) => x === profileKey) >= 0) {
-            credsObject[profile.name][profileKey] = profile[profileKey];
+            if (profile.name)
+              credsObject[profile.name][profileKey] = profile[profileKey];
           }
           if (_.findIndex(configAttributes, (x) => x === profileKey) >= 0) {
             configObject[iniSection][profileKey] = profile[profileKey];
           }
         }
       }
-      console.log("Credentials");
-      console.log(ini.stringify(credsObject));
-      console.log("Config");
-      console.log(ini.stringify(configObject));
-      // fs.writeFileSync(
-      //   path.join(homePath, ".aws", "credentials"),
-      //   ini.stringify(credsObject)
-      // );
-      // fs.writeFileSync(
-      //   path.join(homePath, ".aws", "config"),
-      //   ini.stringify(configObject)
-      // );
+      // console.log("Credentials");
+      // console.log(ini.stringify(credsObject));
+      // console.log("Config");
+      // console.log(ini.stringify(configObject));
+      fs.writeFileSync(
+        path.join(homePath, ".aws", "credentials"),
+        ini.stringify(credsObject)
+      );
+      fs.writeFileSync(
+        path.join(homePath, ".aws", "config"),
+        ini.stringify(configObject)
+      );
+
       resolve();
     } catch (error) {
-      throw new Error(error.message ? error.message : error);
+      displayBox(error.message ? error.message : error, "danger");
     }
   });
+};
+
+const displayMessage = async (profileData: IProfileData, platform: string) => {
+  // Copy AWS Profile command
+  let profileName: string = "";
+  if (profileData.type === "normal" && !profileData.mfa)
+    profileName = profileData.name;
+  if (profileData.type === "normal" && profileData.mfa)
+    profileName = `${profileData.name}-mfa`;
+  if (profileData.type === "assumed") profileName = profileData.name;
+
+  if (platform === "win32") {
+    clipboard.writeSync(`setx AWS_PROFILE ${profileName}`);
+  } else {
+    clipboard.writeSync(`export AWS_PROFILE=${profileName}`);
+  }
+
+  // Display Message
+  console.log(
+    boxen(
+      `Profile '${profileData.name}' created succesfully
+AWS export command is copied to your clipboard. Please paste (Cmd-V / Ctrl-V) the command to set your profile`,
+      successBox
+    )
+  );
+  return;
 };

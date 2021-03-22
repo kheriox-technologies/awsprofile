@@ -10,9 +10,10 @@ import {
   spinner,
   checkExistingProfile,
   getAWSRegions,
+  getAWSVersion,
   displayBox,
 } from "../utils";
-import { IDefaultConfig } from "../types";
+import { IAWSRegion, IDefaultConfig } from "../types";
 
 export default class Create extends Command {
   static description = "Create new AWS profile";
@@ -53,11 +54,6 @@ export default class Create extends Command {
     mfaSerial: flags.string({
       char: "m",
       description: "MFA serial (ARN)",
-    }),
-    sessionDuration: flags.string({
-      char: "d",
-      description:
-        "Session duration for MFA enabled and assumed profiles between 900 (15 Min) and 129600 (36 Hours)",
     }),
     mfaCode: flags.string({
       char: "c",
@@ -199,23 +195,6 @@ export default class Create extends Command {
             validate: (mfaSerial) => {
               if (mfaSerial === "") {
                 return "Looks like you haven't provided your MFA serial. Please try again";
-              } else return true;
-            },
-          },
-          {
-            name: "sessionDuration",
-            type: "number",
-            message:
-              "How long would you like your session to be active in seconds (900 - 129600) ?",
-            when: (answers) => {
-              return answers.mfa || answers.type === "assumed";
-            },
-            default: defaultConfig.sessionDuration
-              ? defaultConfig.sessionDuration
-              : 3600,
-            validate: (s) => {
-              if (s < 900 || s > 129600) {
-                return "Session duration must be between 900 (15 Min) and 129600 (36 Hours)";
               } else return true;
             },
           },
