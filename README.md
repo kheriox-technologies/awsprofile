@@ -28,8 +28,25 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
+* [`awsprofile create [FILE]`](#awsprofile-create-file)
 * [`awsprofile hello [FILE]`](#awsprofile-hello-file)
 * [`awsprofile help [COMMAND]`](#awsprofile-help-command)
+
+## `awsprofile create [FILE]`
+
+describe the command here
+
+```
+USAGE
+  $ awsprofile create [FILE]
+
+OPTIONS
+  -f, --force
+  -h, --help       show CLI help
+  -n, --name=name  name to print
+```
+
+_See code: [src/commands/create.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/create.ts)_
 
 ## `awsprofile hello [FILE]`
 
