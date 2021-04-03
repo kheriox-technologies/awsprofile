@@ -19,7 +19,7 @@ $ npm install -g awsprofile
 $ awsprofile COMMAND
 running command...
 $ awsprofile (-v|--version|version)
-awsprofile/2.0.1 darwin-x64 node-v15.10.0
+awsprofile/2.0.2 darwin-x64 node-v15.13.0
 $ awsprofile --help [COMMAND]
 USAGE
   $ awsprofile COMMAND
@@ -56,7 +56,7 @@ OPTIONS
   --region=region                        AWS region
 ```
 
-_See code: [src/commands/create.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.1/src/commands/create.ts)_
+_See code: [src/commands/create.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.2/src/commands/create.ts)_
 
 ## `awsprofile delete PROFILE`
 
@@ -74,7 +74,7 @@ OPTIONS
   -h, --help   show CLI help
 ```
 
-_See code: [src/commands/delete.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.1/src/commands/delete.ts)_
+_See code: [src/commands/delete.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.2/src/commands/delete.ts)_
 
 ## `awsprofile help [COMMAND]`
 
@@ -107,7 +107,7 @@ OPTIONS
   -w, --wide  Wider display (All details except keys)
 ```
 
-_See code: [src/commands/list.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.1/src/commands/list.ts)_
+_See code: [src/commands/list.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.2/src/commands/list.ts)_
 
 ## `awsprofile renew [PROFILE] [MFACODE]`
 
@@ -125,5 +125,5 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/renew.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.1/src/commands/renew.ts)_
+_See code: [src/commands/renew.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.2/src/commands/renew.ts)_
 <!-- commandsstop -->

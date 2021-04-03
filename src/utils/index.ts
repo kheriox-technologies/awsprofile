@@ -19,6 +19,8 @@ import * as chalk from "chalk";
 import * as boxen from "boxen";
 import * as moment from "moment";
 import * as Table from "cli-table3";
+
+import { awsRegions } from "./awsRegions";
 const successBox: boxen.Options = {
   borderColor: "green",
   borderStyle: "round",
@@ -75,9 +77,9 @@ export const getAWSRegions = async () => {
   return new Promise<IAWSRegion[]>(async (resolve, reject) => {
     // Get AWS Regions from Data
     try {
-      const awsRegions: IAWSRegion[] = await fs.readJSONSync(
-        path.resolve(__dirname, "../data/awsRegions.json")
-      );
+      // const awsRegions: IAWSRegion[] = await fs.readJSONSync(
+      //   path.resolve(__dirname, "../data/awsRegions.json")
+      // );
       resolve(_.orderBy(awsRegions, ["code"], ["asc"]));
     } catch (error) {
       displayBox(
@@ -801,5 +803,3 @@ export const deleteProfile = async (
     }
   });
 };
-
-
