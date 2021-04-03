@@ -28,17 +28,44 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`awsprofile create [FILE]`](#awsprofile-create-file)
+* [`awsprofile create`](#awsprofile-create)
+* [`awsprofile delete [FILE]`](#awsprofile-delete-file)
 * [`awsprofile hello [FILE]`](#awsprofile-hello-file)
 * [`awsprofile help [COMMAND]`](#awsprofile-help-command)
+* [`awsprofile list`](#awsprofile-list)
+* [`awsprofile renew [PROFILE] [MFACODE]`](#awsprofile-renew-profile-mfacode)
 
-## `awsprofile create [FILE]`
+## `awsprofile create`
+
+Create new AWS profile
+
+```
+USAGE
+  $ awsprofile create
+
+OPTIONS
+  -a, --accessKey=accessKey              AWS Access Key
+  -c, --mfaCode=mfaCode                  MFA code from the authenticator app
+  -h, --help                             show CLI help
+  -m, --mfaSerial=mfaSerial              MFA serial (ARN)
+  -n, --name=name                        Profile name
+  -p, --sourceProfile=sourceProfile      Source profile for assumed profile types
+  -r, --roleArn=roleArn                  IAM role ARN for assumed profile types
+  -s, --secretAccessKey=secretAccessKey  AWS Secret Access Key
+  -t, --type=normal|assumed              Profile type
+  --mfa                                  Is MFA profile ?
+  --region=region                        AWS region
+```
+
+_See code: [src/commands/create.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/create.ts)_
+
+## `awsprofile delete [FILE]`
 
 describe the command here
 
 ```
 USAGE
-  $ awsprofile create [FILE]
+  $ awsprofile delete [FILE]
 
 OPTIONS
   -f, --force
@@ -46,7 +73,7 @@ OPTIONS
   -n, --name=name  name to print
 ```
 
-_See code: [src/commands/create.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/create.ts)_
+_See code: [src/commands/delete.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/delete.ts)_
 
 ## `awsprofile hello [FILE]`
 
@@ -84,4 +111,36 @@ OPTIONS
 ```
 
 _See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v3.2.2/src/commands/help.ts)_
+
+## `awsprofile list`
+
+List AWS profiles
+
+```
+USAGE
+  $ awsprofile list
+
+OPTIONS
+  -h, --help  show CLI help
+```
+
+_See code: [src/commands/list.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/list.ts)_
+
+## `awsprofile renew [PROFILE] [MFACODE]`
+
+Renew MFA / Assumed profile
+
+```
+USAGE
+  $ awsprofile renew [PROFILE] [MFACODE]
+
+ARGUMENTS
+  PROFILE  Profile name to renew
+  MFACODE  MFA code
+
+OPTIONS
+  -h, --help  show CLI help
+```
+
+_See code: [src/commands/renew.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/renew.ts)_
 <!-- commandsstop -->

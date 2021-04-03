@@ -17,6 +17,8 @@ import * as AWS from "aws-sdk";
 import * as clipboard from "clipboardy";
 import * as chalk from "chalk";
 import * as boxen from "boxen";
+import * as moment from "moment";
+import * as Table from "cli-table3";
 const successBox: boxen.Options = {
   borderColor: "green",
   borderStyle: "round",
@@ -175,6 +177,27 @@ export const getProfiles = async (homePath: string) => {
         }
         profiles.push(profile);
       }
+      for (let key of Object.keys(configObject)) {
+        const profileName =
+          key === "default" ? "default" : key.replace("profile ", "");
+
+        if (!_.find(profiles, (p) => p.name === profileName)) {
+          let profile = { name: profileName };
+          if (key === "default") {
+            if (_.has(configObject, "default")) {
+              profile = { ...profile, ...configObject["default"] };
+            }
+          } else {
+            if (_.has(configObject, `profile ${profileName}`)) {
+              profile = {
+                ...profile,
+                ...configObject[`profile ${profileName}`],
+              };
+            }
+          }
+          profiles.push(profile);
+        }
+      }
       resolve(_.orderBy(profiles, ["name"], ["asc"]));
     } catch (error) {
       displayBox(error.message ? error.message : error, "danger");
@@ -265,7 +288,7 @@ export const createProfile = async (
         // Write Profiles
         await writeProfiles(homePath, profiles);
         // Display Message
-        await displayMessage(profileData, platform);
+        await displayMessage(profileData, platform, "create");
         resolve();
       }
 
@@ -296,7 +319,7 @@ export const createProfile = async (
         // Write Profiles
         await writeProfiles(homePath, profiles);
         // Display Message
-        await displayMessage(profileData, platform);
+        await displayMessage(profileData, platform, "create");
         resolve();
       }
 
@@ -366,7 +389,7 @@ export const createProfile = async (
               // Write Profiles
               await writeProfiles(homePath, profiles);
               // Display Message
-              await displayMessage(profileData, platform);
+              await displayMessage(profileData, platform, "create");
               resolve();
             });
         } else {
@@ -385,7 +408,118 @@ export const createProfile = async (
           // Write Profiles
           await writeProfiles(homePath, profiles);
           // Display Message
-          await displayMessage(profileData, platform);
+          await displayMessage(profileData, platform, "create");
+          resolve();
+        }
+      }
+    } catch (error) {
+      displayBox(error.message ? error.message : error, "danger");
+    }
+  });
+};
+
+// Renew Profile
+export const renewProfile = async (
+  homePath: string,
+  platform: string,
+  profile: IAWSProfile,
+  mfaCode: string
+) => {
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      // AWS current profiles
+      let profiles = await getProfiles(homePath);
+
+      // Renew MFA Profile
+      if (profile?.mfa_serial) {
+        // Remove existing MFA profile
+        if (profile.mfa_serial) {
+          profiles = _.filter(
+            profiles,
+            (p) => p.name !== `${profile.name}-mfa`
+          );
+        }
+        const profileData: IProfileData = {
+          name: profile.name || "",
+          region: profile.region || "",
+          type: profile.mfa_serial ? "normal" : "assumed",
+          accessKey: profile.aws_access_key_id,
+          secretAccessKey: profile.aws_secret_access_key,
+          mfa: true,
+          mfaSerial: profile.mfa_serial,
+          mfaCode,
+        };
+        const stsCredentials = await getSTSCredentials(profileData);
+        const newMFAProfile: IAWSProfile = {
+          name: `${profile.name}-mfa`,
+          aws_access_key_id: stsCredentials.aws_access_key_id,
+          aws_secret_access_key: stsCredentials.aws_secret_access_key,
+          aws_session_token: stsCredentials.aws_session_token,
+          expiration: stsCredentials.expiration,
+          region: profile.region,
+          output: profile.output,
+        };
+        profiles.push(newMFAProfile);
+        // Write Profiles
+        await writeProfiles(homePath, profiles);
+        // Display Message
+        await displayMessage(profileData, platform, "renew");
+        resolve();
+      }
+
+      // Renew Assumed Profile
+      if (profile.source_profile) {
+        // Get Source Profile from the list of profiles
+        const sourceProfile: IAWSProfile | undefined = _.find(
+          profiles,
+          (p) => p.name === profile.source_profile?.replace("-mfa", "")
+        );
+        if (!sourceProfile)
+          return reject(
+            `Source profile ${profile.source_profile} not found. Please try again`
+          );
+
+        if (sourceProfile.mfa_serial && sourceProfile.mfa_serial !== "") {
+          // Remove existing Source MFA profile
+          profiles = _.filter(
+            profiles,
+            (p) => p.name !== `${sourceProfile.name}-mfa`
+          );
+
+          const profileData: IProfileData = {
+            name: profile.name || "",
+            region: profile.region || "",
+            output: profile.output || "json",
+            type: "assumed",
+            accessKey: sourceProfile.aws_access_key_id,
+            secretAccessKey: sourceProfile.aws_secret_access_key,
+            mfa: true,
+            mfaSerial: sourceProfile.mfa_serial,
+            mfaCode,
+            roleArn: profile.role_arn,
+          };
+          const stsCredentials = await getSTSCredentials(profileData);
+          const newMFAProfile: IAWSProfile = {
+            name: `${sourceProfile.name}-mfa`,
+            aws_access_key_id: stsCredentials.aws_access_key_id,
+            aws_secret_access_key: stsCredentials.aws_secret_access_key,
+            aws_session_token: stsCredentials.aws_session_token,
+            expiration: stsCredentials.expiration,
+            region: profileData.region,
+            output: profileData.output,
+          };
+          profiles.push(newMFAProfile);
+
+          // Write Profiles
+          await writeProfiles(homePath, profiles);
+          // Display Message
+          await displayMessage(profileData, platform, "renew");
+          resolve();
+        } else {
+          displayBox(
+            `The source profile '${sourceProfile.name}' is not MFA enabled. No renewal required`,
+            "warning"
+          );
           resolve();
         }
       }
@@ -412,28 +546,16 @@ export const getSTSCredentials = async (profileData: IProfileData) => {
       if (profileData.mfaSerial) {
         stsParams.SerialNumber = profileData.mfaSerial;
         stsParams.TokenCode = profileData.mfaCode;
+        stsParams.DurationSeconds = 900;
       }
 
-      // Set Role ARN details
-      // if (profileData.roleArn) {
-      //   stsParams.RoleArn = profileData.roleArn;
-      //   stsParams.RoleSessionName = `${_.last(
-      //     _.split(profileData.roleArn, "/")
-      //   )}-AssumedSession`;
-      // }
       let stsRes: any;
-
-      // if (profileData.type === "assumed") {
-      //   stsRes = await sts.assumeRole(stsParams).promise();
-      // } else {
-      //   stsRes = await sts.getSessionToken(stsParams).promise();
-      // }
       stsRes = await sts.getSessionToken(stsParams).promise();
       const stsCredentials: ISTSCredential = {
         aws_access_key_id: stsRes.Credentials.AccessKeyId,
         aws_secret_access_key: stsRes.Credentials.SecretAccessKey,
         aws_session_token: stsRes.Credentials.SessionToken,
-        expiration: stsRes.Credentials.Expiration.toString(),
+        expiration: moment(stsRes.Credentials.Expiration).local().format(),
       };
       spinner.succeed();
       return resolve(stsCredentials);
@@ -504,7 +626,11 @@ export const writeProfiles = async (
   });
 };
 
-const displayMessage = async (profileData: IProfileData, platform: string) => {
+const displayMessage = async (
+  profileData: IProfileData,
+  platform: string,
+  action: string
+) => {
   // Copy AWS Profile command
   let profileName: string = "";
   if (profileData.type === "normal" && !profileData.mfa)
@@ -522,10 +648,158 @@ const displayMessage = async (profileData: IProfileData, platform: string) => {
   // Display Message
   console.log(
     boxen(
-      `Profile '${profileData.name}' created succesfully
-AWS export command is copied to your clipboard. Please paste (Cmd-V / Ctrl-V) the command to set your profile`,
+      `Profile '${profileData.name}' ${
+        action === "create" ? "created" : action === "renew" ? "renewed" : ""
+      } succesfully
+AWS export command is copied to your clipboard. Please paste (${
+        platform === "darwin" ? "Cmd-V" : "Ctrl-V"
+      }) the command to set your profile`,
       successBox
     )
   );
   return;
 };
+
+// List Profiles
+export const listProfiles = async (homePath: string, flags: any) => {
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      const profiles = await getProfiles(homePath);
+
+      // Headers
+      let tableHeaders = ["Name", "Type", "MFA", "Expiry"];
+
+      if (flags.wide && !flags.keys) {
+        tableHeaders = [
+          ...tableHeaders,
+          ...["Region", "Output", "MFA Serial", "Role", "Source Profile"],
+        ];
+      }
+
+      if (flags.keys) {
+        tableHeaders = [
+          ...tableHeaders,
+          ...["Access Key", "Secret Access Key"],
+        ];
+      }
+
+      const table = new Table({
+        head: tableHeaders,
+        style: {
+          border: ["white"],
+          head: ["blue"],
+        },
+      });
+
+      for (const profile of profiles) {
+        let expiration = chalk.yellow("NA");
+        if (profile.source_profile) {
+          const sourceProfile = _.find(
+            profiles,
+            (p) => p.name === profile.source_profile
+          );
+          if (sourceProfile && sourceProfile.expiration) {
+            if (moment().diff(moment(sourceProfile.expiration)) < 0) {
+              expiration = chalk.green(
+                moment(sourceProfile.expiration).fromNow()
+              );
+            } else {
+              expiration = chalk.red("Expired");
+            }
+          }
+        } else if (profile.expiration) {
+          if (moment().diff(moment(profile.expiration)) < 0) {
+            expiration = chalk.green(moment(profile.expiration).fromNow());
+          } else {
+            expiration = chalk.red("Expired");
+          }
+        }
+
+        let tableRow = [
+          profile.name,
+          profile.role_arn ? "Assumed" : "Normal",
+          profile.mfa_serial ? "Y" : "N",
+          expiration,
+        ];
+
+        if (flags.wide && !flags.keys) {
+          tableRow = [
+            ...tableRow,
+            ...[
+              profile.region,
+              profile.output,
+              profile.mfa_serial ? profile.mfa_serial : "NA",
+              profile.role_arn ? profile.role_arn : "NA",
+              profile.source_profile ? profile.source_profile : "NA",
+            ],
+          ];
+        }
+
+        if (flags.keys) {
+          tableRow = [
+            ...tableRow,
+            ...[
+              profile.aws_access_key_id || "NA",
+              profile.aws_secret_access_key || "NA",
+            ],
+          ];
+        }
+
+        table.push(tableRow);
+      }
+
+      console.log(table.toString());
+
+      resolve();
+    } catch (error) {
+      displayBox(error.message ? error.message : error, "danger");
+    }
+  });
+};
+
+// Delete Profile
+export const deleteProfile = async (
+  homePath: string,
+  profileName: string,
+  force: boolean
+) => {
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      let profiles = await getProfiles(homePath);
+
+      if (force) {
+        profiles = profiles.filter((p) => p.name !== profileName);
+        await writeProfiles(homePath, profiles);
+        displayBox(`Profile '${profileName}' deleted successfully`, "danger");
+        resolve();
+      } else {
+        inquirer
+          .prompt([
+            {
+              name: "confirmDelete",
+              type: "confirm",
+              message: `Are you sure you want to delete profile '${profileName}' ?`,
+              default: false,
+            },
+          ])
+          .then(async (answers) => {
+            if (answers.confirmDelete) {
+              profiles = profiles.filter((p) => p.name !== profileName);
+              await writeProfiles(homePath, profiles);
+              displayBox(
+                `Profile '${profileName}' deleted successfully`,
+                "danger"
+              );
+              resolve();
+            } else {
+              process.exit(1);
+            }
+          });
+      }
+    } catch (error) {
+      displayBox(error.message ? error.message : error, "danger");
+    }
+  });
+};
+
+

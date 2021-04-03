@@ -1,7 +1,4 @@
 import { Command, flags } from "@oclif/command";
-import * as path from "path";
-import * as fs from "fs-extra";
-import * as ini from "ini";
 import * as inquirer from "inquirer";
 import * as _ from "lodash";
 import {

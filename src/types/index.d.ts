@@ -15,7 +15,7 @@ export interface IProfileData {
   region: string;
   accessKey?: string;
   secretAccessKey?: string;
-  mfa?: string;
+  mfa?: boolean;
   mfaSerial?: string;
   mfaCode?: string;
   sourceProfile?: string;
