@@ -548,7 +548,6 @@ export const getSTSCredentials = async (profileData: IProfileData) => {
       if (profileData.mfaSerial) {
         stsParams.SerialNumber = profileData.mfaSerial;
         stsParams.TokenCode = profileData.mfaCode;
-        stsParams.DurationSeconds = 900;
       }
 
       let stsRes: any;
@@ -568,7 +567,7 @@ export const getSTSCredentials = async (profileData: IProfileData) => {
   });
 };
 
-// Write Profile
+// Write Profiles
 export const writeProfiles = async (
   homePath: string,
   profiles: IAWSProfile[]
@@ -628,6 +627,7 @@ export const writeProfiles = async (
   });
 };
 
+// Display Message
 const displayMessage = async (
   profileData: IProfileData,
   platform: string,
@@ -651,7 +651,13 @@ const displayMessage = async (
   console.log(
     boxen(
       `Profile '${profileData.name}' ${
-        action === "create" ? "created" : action === "renew" ? "renewed" : ""
+        action === "create"
+          ? "created"
+          : action === "renew"
+          ? "renewed"
+          : action === "switch"
+          ? "switched"
+          : ""
       } succesfully
 AWS export command is copied to your clipboard. Please paste (${
         platform === "darwin" ? "Cmd-V" : "Ctrl-V"
@@ -797,6 +803,47 @@ export const deleteProfile = async (
               process.exit(1);
             }
           });
+      }
+    } catch (error) {
+      displayBox(error.message ? error.message : error, "danger");
+    }
+  });
+};
+
+// switch Profile
+export const switchProfile = async (
+  homePath: string,
+  platform: string,
+  profileName: string
+) => {
+  return new Promise<void>(async (resolve, reject) => {
+    try {
+      let profiles = await getProfiles(homePath);
+
+      const profile = _.find(profiles, (p) => p.name === profileName);
+
+      if (!profile) {
+        displayBox(`Profile '${profileName}' not found.`, "warning");
+        process.exit(1);
+      } else {
+        let profileData: IProfileData = {
+          name: profile.name || "",
+          region: profile.region || "",
+          type: "normal",
+          mfa: false,
+        };
+        if (profile.mfa_serial) {
+          profileData.mfa = true;
+          await displayMessage(profileData, platform, "switch");
+          resolve();
+        } else if (profile.source_profile) {
+          profileData.type = "assumed";
+          await displayMessage(profileData, platform, "switch");
+          resolve();
+        } else {
+          await displayMessage(profileData, platform, "switch");
+          resolve();
+        }
       }
     } catch (error) {
       displayBox(error.message ? error.message : error, "danger");
