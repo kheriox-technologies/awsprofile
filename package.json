@@ -33,9 +33,9 @@
     "@oclif/test": "^1",
     "@types/chai": "^4",
     "@types/command-exists": "^1.2.0",
-    "@types/fs-extra": "^9.0.8",
+    "@types/fs-extra": "^9.0.10",
     "@types/mocha": "^5",
-    "@types/node": "^10",
+    "@types/node": "^14.14.37",
     "chai": "^4",
     "eslint": "^5.13",
     "eslint-config-oclif": "^3.1",
@@ -57,7 +57,11 @@
   ],
   "homepage": "https://github.com/kheriox-technologies/awsprofile",
   "keywords": [
-    "oclif"
+    "aws",
+    "aws profile",
+    "mfa",
+    "sts",
+    "aws cli"
   ],
   "license": "MIT",
   "main": "lib/index.js",

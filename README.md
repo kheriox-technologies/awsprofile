@@ -29,8 +29,7 @@ USAGE
 # Commands
 <!-- commands -->
 * [`awsprofile create`](#awsprofile-create)
-* [`awsprofile delete [FILE]`](#awsprofile-delete-file)
-* [`awsprofile hello [FILE]`](#awsprofile-hello-file)
+* [`awsprofile delete PROFILE`](#awsprofile-delete-profile)
 * [`awsprofile help [COMMAND]`](#awsprofile-help-command)
 * [`awsprofile list`](#awsprofile-list)
 * [`awsprofile renew [PROFILE] [MFACODE]`](#awsprofile-renew-profile-mfacode)
@@ -59,41 +58,23 @@ OPTIONS
 
 _See code: [src/commands/create.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/create.ts)_
 
-## `awsprofile delete [FILE]`
+## `awsprofile delete PROFILE`
 
-describe the command here
+Delete profile
 
 ```
 USAGE
-  $ awsprofile delete [FILE]
+  $ awsprofile delete PROFILE
+
+ARGUMENTS
+  PROFILE  Profile name to delete
 
 OPTIONS
   -f, --force
-  -h, --help       show CLI help
-  -n, --name=name  name to print
+  -h, --help   show CLI help
 ```
 
 _See code: [src/commands/delete.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/delete.ts)_
-
-## `awsprofile hello [FILE]`
-
-describe the command here
-
-```
-USAGE
-  $ awsprofile hello [FILE]
-
-OPTIONS
-  -f, --force
-  -h, --help       show CLI help
-  -n, --name=name  name to print
-
-EXAMPLE
-  $ awsprofile hello
-  hello world from ./src/hello.ts!
-```
-
-_See code: [src/commands/hello.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/hello.ts)_
 
 ## `awsprofile help [COMMAND]`
 
@@ -122,6 +103,8 @@ USAGE
 
 OPTIONS
   -h, --help  show CLI help
+  -k, --keys  Display keys
+  -w, --wide  Wider display (All details except keys)
 ```
 
 _See code: [src/commands/list.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.0.0/src/commands/list.ts)_
