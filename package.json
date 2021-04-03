@@ -1,7 +1,7 @@
 {
   "name": "awsprofile",
   "description": "CLI to manage AWS profiles and renew STS tokens",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "Prasad Domala",
   "bin": {
     "awsprofile": "./bin/run"
