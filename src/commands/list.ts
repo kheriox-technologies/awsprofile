@@ -15,8 +15,10 @@ export default class List extends Command {
 
   async run() {
     const { flags } = this.parse(List);
-    await listProfiles(this.config.home, flags).catch((e) => {
-      displayBox(e.message ? e.message : e, "danger");
-    });
+    await listProfiles(this.config.home, this.config.configDir, flags).catch(
+      (e) => {
+        displayBox(e.message ? e.message : e, "danger");
+      }
+    );
   }
 }

@@ -16,10 +16,13 @@ export default class Delete extends Command {
   async run() {
     const { args, flags } = this.parse(Delete);
 
-    await deleteProfile(this.config.home, args.profile, flags.force).catch(
-      (e) => {
-        displayBox(e.message ? e.message : e, "danger");
-      }
-    );
+    await deleteProfile(
+      this.config.home,
+      this.config.configDir,
+      args.profile,
+      flags.force
+    ).catch((e) => {
+      displayBox(e.message ? e.message : e, "danger");
+    });
   }
 }

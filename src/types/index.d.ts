@@ -3,11 +3,12 @@ export interface IAWSRegion {
   fullName: string;
   code: string;
 }
-export interface IDefaultConfig {
+export interface IConfig {
   region: string;
   output: string;
   mfaSerial: string;
   mfaBaseKeys?: IMFABaseKeys[];
+  assumedProfiles?: IAssumedProfileConfig[];
 }
 export interface IProfileData {
   name: string;
@@ -46,4 +47,9 @@ export interface IMFABaseKeys {
   name: string;
   aws_access_key_id: string | undefined;
   aws_secret_access_key: string | undefined;
+}
+export interface IAssumedProfileConfig {
+  name: string;
+  sourceProfile?: string;
+  roleArn?: string;
 }

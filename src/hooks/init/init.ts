@@ -5,8 +5,8 @@ import * as cmdExists from "command-exists";
 import * as inquirer from "inquirer";
 import { spinner } from "../../utils";
 import * as _ from "lodash";
-import { IAWSRegion, IDefaultConfig } from "../../types";
-import { getDefaultConfig, askForDefaults } from "../../utils";
+import { IAWSRegion, IConfig } from "../../types";
+import { getConfig, askForDefaults } from "../../utils";
 import * as ini from "ini";
 
 const hook: Hook<"init"> = async function (opts) {
@@ -30,15 +30,20 @@ const hook: Hook<"init"> = async function (opts) {
         spinner.info(
           "Looks like you are executing the CLI for the first time. Lets set some defaults\n"
         );
-        const defaultConfig: IDefaultConfig = await askForDefaults();
+        const defaultConfig: IConfig = await askForDefaults();
         fs.outputJSONSync(configFile, defaultConfig);
         console.log();
+      } else {
+        // Check for assumed profiles attribute in default config and add empty list if it does not exist
+        const defaultConfig: IConfig = await getConfig(opts.config.configDir);
+        if (!_.has(defaultConfig, "assumedProfiles")) {
+          defaultConfig.assumedProfiles = [];
+          fs.outputJSONSync(configFile, defaultConfig);
+        }
       }
 
       // Create AWS creds and config files if doesn't exist
-      const defaultConfig: IDefaultConfig = await getDefaultConfig(
-        opts.config.configDir
-      );
+      const defaultConfig: IConfig = await getConfig(opts.config.configDir);
       if (!(await fs.pathExists(awsCredsFile))) {
         fs.writeFileSync(
           awsCredsFile,

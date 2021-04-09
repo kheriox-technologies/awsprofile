@@ -19,7 +19,7 @@ $ npm install -g awsprofile
 $ awsprofile COMMAND
 running command...
 $ awsprofile (-v|--version|version)
-awsprofile/2.1.1 darwin-x64 node-v15.13.0
+awsprofile/2.2.0 darwin-x64 node-v15.13.0
 $ awsprofile --help [COMMAND]
 USAGE
   $ awsprofile COMMAND
@@ -37,7 +37,7 @@ USAGE
 
 ## `awsprofile create`
 
-Create new AWS profile
+Create new AWS profile (Interactive mode if no flags are provided)
 
 ```
 USAGE
@@ -57,7 +57,7 @@ OPTIONS
   --region=region                        AWS region
 ```
 
-_See code: [src/commands/create.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.1.1/src/commands/create.ts)_
+_See code: [src/commands/create.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.2.0/src/commands/create.ts)_
 
 ## `awsprofile delete PROFILE`
 
@@ -75,7 +75,7 @@ OPTIONS
   -h, --help   show CLI help
 ```
 
-_See code: [src/commands/delete.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.1.1/src/commands/delete.ts)_
+_See code: [src/commands/delete.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.2.0/src/commands/delete.ts)_
 
 ## `awsprofile help [COMMAND]`
 
@@ -108,11 +108,11 @@ OPTIONS
   -w, --wide  Wider display (All details except keys)
 ```
 
-_See code: [src/commands/list.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.1.1/src/commands/list.ts)_
+_See code: [src/commands/list.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.2.0/src/commands/list.ts)_
 
 ## `awsprofile renew [PROFILE] [MFACODE]`
 
-Renew MFA / Assumed profile
+Renew MFA / Assumed profile (Interactive mode if no flags are provided)
 
 ```
 USAGE
@@ -126,11 +126,11 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/renew.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.1.1/src/commands/renew.ts)_
+_See code: [src/commands/renew.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.2.0/src/commands/renew.ts)_
 
 ## `awsprofile switch PROFILE`
 
-Switch profiles
+Switch profiles. (Renews expired MFA / assumed profiles)
 
 ```
 USAGE
@@ -143,5 +143,5 @@ OPTIONS
   -h, --help  show CLI help
 ```
 
-_See code: [src/commands/switch.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.1.1/src/commands/switch.ts)_
+_See code: [src/commands/switch.ts](https://github.com/kheriox-technologies/awsprofile/blob/v2.2.0/src/commands/switch.ts)_
 <!-- commandsstop -->

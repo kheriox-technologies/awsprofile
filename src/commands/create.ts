@@ -2,18 +2,17 @@ import { Command, flags } from "@oclif/command";
 import * as inquirer from "inquirer";
 import * as _ from "lodash";
 import {
-  getDefaultConfig,
+  getConfig,
   getProfiles,
   spinner,
   checkExistingProfile,
   getAWSRegions,
-  getAWSVersion,
   displayBox,
 } from "../utils";
-import { IAWSRegion, IDefaultConfig } from "../types";
+import { IAWSRegion, IConfig } from "../types";
 
 export default class Create extends Command {
-  static description = "Create new AWS profile";
+  static description = `Create new AWS profile (Interactive mode if no flags are provided)`;
 
   static flags = {
     help: flags.help({ char: "h" }),
@@ -60,9 +59,7 @@ export default class Create extends Command {
 
   async run() {
     const { flags } = this.parse(Create);
-    const defaultConfig: IDefaultConfig = await getDefaultConfig(
-      this.config.configDir
-    );
+    const defaultConfig: IConfig = await getConfig(this.config.configDir);
     const profiles = await getProfiles(this.config.home);
     const profileNames = profiles.map((p) => p.name);
     const awsRegions = await getAWSRegions();
